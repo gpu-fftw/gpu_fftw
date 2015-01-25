@@ -8,7 +8,7 @@ RPIDIR=~/x-tools/$(RPIARCH)
 RPISYSROOT=~/x-tools/$(RPIARCH)/$(RPIARCH)/sysroot
 RPICXX=$(RPIDIR)/bin/$(RPIARCH)-g++
 RPICC=$(RPIDIR)/bin/$(RPIARCH)-gcc
-RPICXXFLAGS=-march=armv6 -mfloat-abi=hard -mfpu=vfp -O0 -ffast-math \
+RPICXXFLAGS=-march=armv6 -mfloat-abi=hard -mfpu=vfp -O3 -ffast-math \
                     -pipe -mtune=arm1176jzf-s -fstack-protector --param=ssp-buffer-size=4
 RPILDFLAGS=-Wl,-O1,--sort-common,--as-needed,-z,relro
 
@@ -19,8 +19,8 @@ RPILDFLAGS=-Wl,-O1,--sort-common,--as-needed,-z,relro
 VISIBILITY= -fvisibility=hidden
 CC        = $(RPICC)
 CXX       = $(RPICXX)
-CFLAGS   += $(RPICXXFLAGS) -std=c99 -Wall -g $(VISIBILITY)
-CXXFLAGS += $(RPICXXFLAGS) -std=c++11 -Wall -g  $(VISIBILITY)# -fvisibility-inlines-hidden
+CFLAGS   += $(RPICXXFLAGS) -std=c99 -Wall -pg $(VISIBILITY)
+CXXFLAGS += $(RPICXXFLAGS) -std=c++11 -Wall -pg  $(VISIBILITY) -fvisibility-inlines-hidden
 RELVER    = 1
 TARGETLIBS= libgpufftw.so libgpufftwf.so
 TARGETEXES= gpu_fftw

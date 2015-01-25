@@ -32,9 +32,9 @@ void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
    }
 }
 
-void SO_LOCAL copy_output(int N,PREFIX_complex* out,struct GPU_FFT* fft)
+void SO_LOCAL copy_output(int N,PREFIX_complex* restrict out,struct GPU_FFT* restrict fft)
 {
-   struct GPU_FFT_COMPLEX* base;
+   struct GPU_FFT_COMPLEX* restrict base;
    int i,j;
    int jobs=1;
    if (out==NULL) {
@@ -93,12 +93,14 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
 
 PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags)
 {
+   static ptr_PREFIX_plan_dft_1d fftw_plan_fun=NULL;
    static struct GPU_FFTW_PLAN mplan_arr[MPLAN_ARRSIZE];
    struct GPU_FFTW_PLAN* metaplan;
    static int mplan_n = 0;
    static char* env=NULL;
 
-   ptr_PREFIX_plan_dft_1d fftw_plan_fun=orig_func("PREFIX_plan_dft_1d",PREFIX_plan_dft_1d);
+   if (fftw_plan_fun==NULL)
+      fftw_plan_fun=orig_func("PREFIX_plan_dft_1d",PREFIX_plan_dft_1d);
 
    metaplan = NULL;
    if (mplan_n<MPLAN_ARRSIZE)
@@ -137,6 +139,7 @@ use_fftw3:
       PREFIX_plan plan = (*fftw_plan_fun)(n,in,out,sign,flags);
       metaplan->gpu=false;
       metaplan->plan=(void*)plan;
+      gpu_active(false);
       return (PREFIX_plan) metaplan;
    }
 }
@@ -148,8 +151,12 @@ typedef void(*ptr_PREFIX_execute)(const PREFIX_plan);
 
 void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
 {
+   static ptr_PREFIX_execute fftw_execute_fun=NULL;
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
-   ptr_PREFIX_execute fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
+
+   if (fftw_execute_fun==NULL) 
+      fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
+
    if (metaplan->gpu) {
       gpu_fft_execute( (struct GPU_FFT*) metaplan->plan);
       copy_output(metaplan->n,
@@ -167,9 +174,13 @@ typedef void(*ptr_PREFIX_destroy_plan)(PREFIX_plan);
 
 void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
 {
+   static ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=NULL;
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
+
    (*metaplan->count_ptr)--;
-   ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
+   if (fftw_destroy_plan_fun==NULL)
+      fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
+
    if (metaplan->gpu) {
       gpu_fft_release( (struct GPU_FFT*) metaplan->plan );
    }

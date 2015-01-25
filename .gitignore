@@ -4,4 +4,5 @@ gpu_fftw.c
 gpu_fftwf.c
 .svn
 *.pyc
+gmon.out
 
