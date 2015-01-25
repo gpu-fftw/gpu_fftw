@@ -1,0 +1,106 @@
+/* vi: set ft=c: */
+#include "gpu_fftw.h"
+#include "hello_fft/gpu_fft.h"
+#include "hello_fft/mailbox.h"
+#include <stdlib.h>
+#include <fftw3.h>
+#include <assert.h>
+
+#ifndef S_SPLINT_S
+#include <syslog.h>
+#endif
+
+/**********
+ *  Plan  *
+ **********/
+typedef PREFIX_plan(*ptr_PREFIX_plan_dft_1d)
+   (int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags);
+
+/* PREFIX_plan here is really a pointer to GPU_FFT */
+PREFIX_plan SO_LOCAL gpu_fftw_plan(int N, 
+      unsigned int log2_N,
+      PREFIX_complex *in, 
+      PREFIX_complex *out,
+      int sign,
+      unsigned int flags)
+{
+   say(LOG_DEBUG,"%s","running gpu PREFIX_plan_dft_1d\n");
+
+   struct GPU_FFT *fft = NULL;
+   int mb = mbox_open();
+   int jobs = 1;
+   int direction = (sign == FFTW_FORWARD) ? GPU_FFT_FWD:GPU_FFT_REV;
+   int ret = gpu_fft_prepare(mb, log2_N, direction, jobs, &fft);
+
+    switch(ret) {
+        case -1: 
+           say(LOG_ERR,"Unable to enable V3D. Please check your firmware is up to date.\n");
+           return NULL;
+        case -2: 
+           say(LOG_ERR,"log2_N=%d not supported. This is a gpu_fftw bug. Please report it.\n", log2_N);
+           return NULL;
+        case -3: 
+           say(LOG_ERR,"GPU is out of memory.  Try a smaller batch or increase GPU memory.\n");
+           return NULL;
+        case -4: 
+           say(LOG_ERR,"Hardware error. Unable to map Videocore peripherals into ARM memory space.\n");
+           return NULL;
+    }
+    gpu_active(YES,(void*) fft);
+    return (PREFIX_plan) fft;
+}
+
+PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags)
+{
+   ptr_PREFIX_plan_dft_1d fftw_plan_fun=orig_func("PREFIX_plan_dft_1d",PREFIX_plan_dft_1d);
+
+   PREFIX_plan plan;
+
+   /* Use FFTW if:
+    *     - n is not a power of 2 */
+   unsigned int u = (unsigned int) n;
+   if ( u >=256 && IS_2_PWR(u) ) {
+      u = log2u(u);
+      plan=gpu_fftw_plan(n,u,in,out,sign,flags);
+      if (plan==NULL)
+         goto use_fftw3;
+      else 
+         return plan;
+   } else {
+use_fftw3:
+      say(LOG_DEBUG,"%s","running fftw PREFIX_plan_dft_1d\n");
+      plan = (*fftw_plan_fun)(n,in,out,sign,flags);
+      gpu_active(NO,(void*) plan);
+      return plan;
+   }
+}
+
+/*************
+ *  Execute  *
+ *************/
+typedef void(*ptr_PREFIX_execute)(const PREFIX_plan);
+
+void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
+{
+   ptr_PREFIX_execute fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
+   if (gpu_active(QUERY, (void*) plan)) 
+      gpu_fft_execute( (struct GPU_FFT*) plan);
+   else
+      (*fftw_execute_fun)(plan);
+}
+
+/*************
+ *  Destroy  *
+ *************/
+typedef void(*ptr_PREFIX_destroy_plan)(PREFIX_plan);
+
+void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
+{
+   ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
+   if (gpu_active(QUERY,(void*) plan)) {
+      gpu_active(NO,(void*) plan);
+      gpu_fft_release( (struct GPU_FFT*) plan );
+   }
+   else
+      (*fftw_destroy_plan_fun)(plan);
+}

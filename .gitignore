@@ -1,0 +1,7 @@
+*.so*
+gpu_fftw
+gpu_fftw.c
+gpu_fftwf.c
+.svn
+*.pyc
+
