@@ -25,6 +25,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 #define _DEFAULT_SOURCE
 #define _XOPEN_SOURCE           /* to make char dev if necessary */
 
@@ -36,12 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <syslog.h>
-
-
-#include <sys/types.h>
+#include <errno.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "mailbox.h"
 #include "../gpu_fftw.h"
@@ -253,7 +253,7 @@ int makechardev()
 {
    dev_t dev = makedev(MAJOR_NUM,0);
    if (mknod(DEVICE_FILE_NAME, S_IFCHR|0644, dev) != 0) {
-      say(LOG_ERR,"Can't create character device: %s, need root permission\n", DEVICE_FILE_NAME);
+      say(LOG_ERR,"Can't create character device: %s - '%s'\n", DEVICE_FILE_NAME,strerror(errno));
       say(LOG_INFO,"Try manually creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
       exit(-1);
    };
@@ -265,12 +265,12 @@ int mbox_open() {
 
    // open a char device file used for communicating with kernel mbox driver
    file_desc = open(DEVICE_FILE_NAME, 0);
-   if (file_desc < 0) {
-      //Try to make the char device
-      makechardev();
+   if (file_desc < 0 ) {
+      if (errno==ENOENT)
+         makechardev(); //Try to make the char device
       file_desc = open(DEVICE_FILE_NAME, 0);
       if (file_desc < 0) {
-         say(LOG_ERR,"Can't open device file: %s\n", DEVICE_FILE_NAME);
+         say(LOG_ERR,"Can't open device file %s - '%s'\n", DEVICE_FILE_NAME,strerror(errno));
          say(LOG_INFO,"Try creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
          exit(-1);
       }

@@ -90,29 +90,11 @@ SO_LOCAL void say( const int errlvl, const char *fmt, ...)
    }
 }
 
-bool SO_LOCAL is_gpu_active(void)
+void SO_LOCAL gpu_active(bool yesno)
 {
-   char* env=NULL;
-   env=getenv("GPU_FFTW_ACTIVE");
-   return (env!=NULL);
+   if (yesno)
+      setenv("GPU_FFTW_ACTIVE","1",1);
+   else
+      unsetenv("GPU_FFTW_ACTIVE");
 }
 
-bool SO_LOCAL gpu_active(int cmd, void* plan)
-{
-   char* env=NULL;
-   switch(cmd) {
-      case YES:
-         setenv("GPU_FFTW_ACTIVE","1",1);
-         break;
-      case NO:
-         unsetenv("GPU_FFTW_ACTIVE");
-         break;
-      case QUERY:
-         env=getenv("GPU_FFTW_ACTIVE");
-         return (env!=NULL);
-      default:
-         say(LOG_ERR,"Wrong command to gpu_active: %d, aborting",cmd);
-         exit(1);
-   }
-   return true;
-}

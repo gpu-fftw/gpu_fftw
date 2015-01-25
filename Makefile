@@ -8,7 +8,7 @@ RPIDIR=~/x-tools/$(RPIARCH)
 RPISYSROOT=~/x-tools/$(RPIARCH)/$(RPIARCH)/sysroot
 RPICXX=$(RPIDIR)/bin/$(RPIARCH)-g++
 RPICC=$(RPIDIR)/bin/$(RPIARCH)-gcc
-RPICXXFLAGS=-march=armv6 -mfloat-abi=hard -mfpu=vfp -O3 -ffast-math \
+RPICXXFLAGS=-march=armv6 -mfloat-abi=hard -mfpu=vfp -O0 -ffast-math \
                     -pipe -mtune=arm1176jzf-s -fstack-protector --param=ssp-buffer-size=4
 RPILDFLAGS=-Wl,-O1,--sort-common,--as-needed,-z,relro
 
@@ -82,7 +82,7 @@ fft_update:
 	svn checkout https://github.com/raspberrypi/firmware/trunk/opt/vc/src/hello_pi/hello_fft
 
 clean:
-	rm -f gpu_fftw.c gpu_fftwf.c $(TARGETEXES)
+	rm -f gpu_fftw.c gpu_fftwf.c $(TARGETEXES) *~ **/*~
 	for i in $(TARGETLIBS); do \
 		rm -f $$i; \
 	done

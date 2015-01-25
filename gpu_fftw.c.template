@@ -10,6 +10,46 @@
 #include <syslog.h>
 #endif
 
+/**********************
+ *  Copy data to GPU  *
+ **********************/
+
+void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
+{
+   struct GPU_FFT_COMPLEX* base;
+   int i,j;
+   int jobs=1;
+   if (in==NULL) {
+      say(LOG_ERR,"Received NULL pointer for input\n");
+      return;
+   }
+   for (j=0; j<jobs; j++) {
+      base = fft->in + j*fft->step; // input buffer
+      for (i=0; i<N; i++) {
+         base[i].re = in[i][0];
+         base[i].im = in[i][1];
+      }
+   }
+}
+
+void SO_LOCAL copy_output(int N,PREFIX_complex* out,struct GPU_FFT* fft)
+{
+   struct GPU_FFT_COMPLEX* base;
+   int i,j;
+   int jobs=1;
+   if (out==NULL) {
+      say(LOG_ERR,"Received NULL pointer for ouput\n");
+      return;
+   }
+   for (j=0; j<jobs; j++) {
+      base = fft->out + j*fft->step; // output buffer
+      for (i=0; i<N; i++) {
+         out[i][0] = base[i].re;
+         out[i][1] = base[i].im;
+      }
+   }
+}
+
 /**********
  *  Plan  *
  **********/
@@ -17,17 +57,19 @@ typedef PREFIX_plan(*ptr_PREFIX_plan_dft_1d)
    (int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags);
 
 /* PREFIX_plan here is really a pointer to GPU_FFT */
-PREFIX_plan SO_LOCAL gpu_fftw_plan(int N, 
+SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N, 
       unsigned int log2_N,
       PREFIX_complex *in, 
       PREFIX_complex *out,
       int sign,
       unsigned int flags)
 {
+   static int mb = -1;
    say(LOG_DEBUG,"%s","running gpu PREFIX_plan_dft_1d\n");
 
    struct GPU_FFT *fft = NULL;
-   int mb = mbox_open();
+   if (mb==-1)
+      mb=mbox_open();
    int jobs = 1;
    int direction = (sign == FFTW_FORWARD) ? GPU_FFT_FWD:GPU_FFT_REV;
    int ret = gpu_fft_prepare(mb, log2_N, direction, jobs, &fft);
@@ -46,32 +88,56 @@ PREFIX_plan SO_LOCAL gpu_fftw_plan(int N,
            say(LOG_ERR,"Hardware error. Unable to map Videocore peripherals into ARM memory space.\n");
            return NULL;
     }
-    gpu_active(YES,(void*) fft);
-    return (PREFIX_plan) fft;
+    return fft;
 }
 
 PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags)
 {
+   static struct GPU_FFTW_PLAN mplan_arr[MPLAN_ARRSIZE];
+   struct GPU_FFTW_PLAN* metaplan;
+   static int mplan_n = 0;
+   static char* env=NULL;
+
    ptr_PREFIX_plan_dft_1d fftw_plan_fun=orig_func("PREFIX_plan_dft_1d",PREFIX_plan_dft_1d);
 
-   PREFIX_plan plan;
+   metaplan = NULL;
+   if (mplan_n<MPLAN_ARRSIZE)
+      metaplan = &mplan_arr[mplan_n++];
+   else {
+      say(LOG_ERR,"Sorry, ran out of space for plans: max %d plans",MPLAN_ARRSIZE);
+      exit(1);
+   }
+     
+   metaplan->count_ptr = &mplan_n; 
+   metaplan->n=n;
+   metaplan->out=(void*) out;
+   metaplan->gpu=false;
+   env = getenv("GPU_FFTW_DISABLE");
+   if (env!=NULL)
+      goto use_fftw3;
 
    /* Use FFTW if:
     *     - n is not a power of 2 */
    unsigned int u = (unsigned int) n;
    if ( u >=256 && IS_2_PWR(u) ) {
       u = log2u(u);
-      plan=gpu_fftw_plan(n,u,in,out,sign,flags);
-      if (plan==NULL)
+      metaplan->plan=(void*)gpu_fftw_plan(n,u,in,out,sign,flags);
+      metaplan->gpu=true;
+      if (metaplan->plan==NULL)
          goto use_fftw3;
-      else 
-         return plan;
+      else {
+         copy_input(n,in,(struct GPU_FFT*) metaplan->plan);
+         gpu_active(true);
+         return (PREFIX_plan) metaplan;
+      }
    } else {
+
 use_fftw3:
       say(LOG_DEBUG,"%s","running fftw PREFIX_plan_dft_1d\n");
-      plan = (*fftw_plan_fun)(n,in,out,sign,flags);
-      gpu_active(NO,(void*) plan);
-      return plan;
+      PREFIX_plan plan = (*fftw_plan_fun)(n,in,out,sign,flags);
+      metaplan->gpu=false;
+      metaplan->plan=(void*)plan;
+      return (PREFIX_plan) metaplan;
    }
 }
 
@@ -82,11 +148,16 @@ typedef void(*ptr_PREFIX_execute)(const PREFIX_plan);
 
 void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
 {
+   struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
    ptr_PREFIX_execute fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
-   if (gpu_active(QUERY, (void*) plan)) 
-      gpu_fft_execute( (struct GPU_FFT*) plan);
+   if (metaplan->gpu) {
+      gpu_fft_execute( (struct GPU_FFT*) metaplan->plan);
+      copy_output(metaplan->n,
+            (PREFIX_complex*) metaplan->out,
+            (struct GPU_FFT*) metaplan->plan);
+   }
    else
-      (*fftw_execute_fun)(plan);
+      (*fftw_execute_fun)( (PREFIX_plan) metaplan->plan);
 }
 
 /*************
@@ -96,11 +167,13 @@ typedef void(*ptr_PREFIX_destroy_plan)(PREFIX_plan);
 
 void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
 {
+   struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
+   (*metaplan->count_ptr)--;
    ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
-   if (gpu_active(QUERY,(void*) plan)) {
-      gpu_active(NO,(void*) plan);
-      gpu_fft_release( (struct GPU_FFT*) plan );
+   if (metaplan->gpu) {
+      gpu_fft_release( (struct GPU_FFT*) metaplan->plan );
    }
    else
-      (*fftw_destroy_plan_fun)(plan);
+      (*fftw_destroy_plan_fun)((PREFIX_plan) metaplan->plan);
 }
+
