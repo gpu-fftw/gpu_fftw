@@ -11,11 +11,20 @@ bool gpu_fftw_running(void)
    return getenv("GPU_FFTW_ACTIVE")!=nullptr;
 }
 
-void run_fft(int n,fftwf_complex* in,fftwf_complex* out,bool print,int loops=1)
+unsigned long usec_time(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec*1000000 + ts.tv_nsec/1000;
+}
+
+unsigned long run_fft(int n,fftwf_complex* in,fftwf_complex* out,bool print,int loops=1)
 {
    auto plan= fftwf_plan_dft_1d(n, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+   auto t1 = usec_time();
    for (int i = 0; i < loops; ++i)
       fftwf_execute(plan);
+   auto t2 = usec_time();
 
    fftwf_destroy_plan(plan);
    if (print) {
@@ -25,6 +34,7 @@ void run_fft(int n,fftwf_complex* in,fftwf_complex* out,bool print,int loops=1)
       std::cerr << "*************************************" << std::endl;
       std::cerr << "*************************************" << std::endl;
    }
+   return t2-t1;
 }
 
 void print_test(const char* hdr,bool pass)
@@ -93,13 +103,6 @@ void show_accuracy(int N)
    std::cout << hdr << std::endl;
 }
 
-unsigned long usec_time(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec*1000000 + ts.tv_nsec/1000;
-}
-
 void show_speed(int N,int loops)
 {
    fftwf_complex in[N]= {1,2,3,4,5,6,7,8,9,10};
@@ -116,19 +119,15 @@ void show_speed(int N,int loops)
 
    // Should run fftw plan
    setenv("GPU_FFTW_DISABLE","1",1);
-   auto t1 = usec_time();
-   run_fft(N,in,out,false,loops);
-   auto t2 = usec_time();
-   double fftw3_spd=loops*1000000.0/(double)(t2-t1);
+   auto fusecs = run_fft(N,in,out,false,loops);
+   double fftw3_spd=loops*1000000.0/(double) fusecs;
    assert(gpu_fftw_running()==false);
 
    // Should run gpu_fftw plan
    unsetenv("GPU_FFTW_DISABLE");
-   t1 = usec_time();
-   run_fft(N,in,out2,false,loops);
-   t2 = usec_time();
-   double gfftw3_spd=loops*1000000.0/(double)(t2-t1);
-   double gfftw3_tim=(double)(t2-t1)/loops;
+   auto gusecs = run_fft(N,in,out2,false,loops);
+   double gfftw3_spd=loops*1000000.0/(double)(gusecs);
+   double gfftw3_tim=(double)(gusecs)/loops;
 
    //assert(gpu_fftw_running()==true);
 
