@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <fftw3.h>
 #include <assert.h>
+#include <string.h>
 
 #ifndef S_SPLINT_S
 #include <syslog.h>
@@ -23,12 +24,19 @@ void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
       say(LOG_ERR,"Received NULL pointer for input\n");
       return;
    }
+   if (!strcmp("PREFIX","fftwf")) {
+   for (j=0; j<jobs; j++) {
+      base = fft->in + j*fft->step; // input buffer
+      memcpy((void*) base, (void*) in, N*2*sizeof(float));
+   }
+   } else {
    for (j=0; j<jobs; j++) {
       base = fft->in + j*fft->step; // input buffer
       for (i=0; i<N; i++) {
          base[i].re = in[i][0];
          base[i].im = in[i][1];
       }
+   }
    }
 }
 
@@ -41,12 +49,23 @@ void SO_LOCAL copy_output(int N,PREFIX_complex* restrict out,struct GPU_FFT* res
       say(LOG_ERR,"Received NULL pointer for ouput\n");
       return;
    }
-   for (j=0; j<jobs; j++) {
-      base = fft->out + j*fft->step; // output buffer
-      for (i=0; i<N; i++) {
-         out[i][0] = base[i].re;
-         out[i][1] = base[i].im;
+   if (!strcmp("PREFIX","fftwf")) {
+      //Both arrays are float, can use memcpy
+      // 2-3 times faster
+      for (j=0; j<jobs; j++) {
+         base = fft->out + j*fft->step; // output buffer
+         memcpy((void*) out, (void*) base, N*2*sizeof(float));
       }
+   } else {
+      //Arrays of different types, have to copy one by one
+      for (j=0; j<jobs; j++) {
+         base = fft->out + j*fft->step; // output buffer
+         for (i=0; i<N; i++) {
+            out[i][0] = base[i].re;
+            out[i][1] = base[i].im;
+         }
+   }
+
    }
 }
 
@@ -57,9 +76,9 @@ typedef PREFIX_plan(*ptr_PREFIX_plan_dft_1d)
    (int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags);
 
 /* PREFIX_plan here is really a pointer to GPU_FFT */
-SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N, 
+SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
       unsigned int log2_N,
-      PREFIX_complex *in, 
+      PREFIX_complex *in,
       PREFIX_complex *out,
       int sign,
       unsigned int flags)
@@ -75,16 +94,16 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
    int ret = gpu_fft_prepare(mb, log2_N, direction, jobs, &fft);
 
     switch(ret) {
-        case -1: 
+        case -1:
            say(LOG_ERR,"Unable to enable V3D. Please check your firmware is up to date.\n");
            return NULL;
-        case -2: 
+        case -2:
            say(LOG_ERR,"log2_N=%d not supported. This is a gpu_fftw bug. Please report it.\n", log2_N);
            return NULL;
-        case -3: 
+        case -3:
            say(LOG_ERR,"GPU is out of memory.  Try a smaller batch or increase GPU memory.\n");
            return NULL;
-        case -4: 
+        case -4:
            say(LOG_ERR,"Hardware error. Unable to map Videocore peripherals into ARM memory space.\n");
            return NULL;
     }
@@ -109,8 +128,8 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
       say(LOG_ERR,"Sorry, ran out of space for plans: max %d plans",MPLAN_ARRSIZE);
       exit(1);
    }
-     
-   metaplan->count_ptr = &mplan_n; 
+
+   metaplan->count_ptr = &mplan_n;
    metaplan->n=n;
    metaplan->out=(void*) out;
    metaplan->gpu=false;
@@ -154,7 +173,7 @@ void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
    static ptr_PREFIX_execute fftw_execute_fun=NULL;
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
 
-   if (fftw_execute_fun==NULL) 
+   if (fftw_execute_fun==NULL)
       fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
 
    if (metaplan->gpu) {
