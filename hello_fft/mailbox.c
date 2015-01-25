@@ -25,17 +25,26 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define _DEFAULT_SOURCE
+#define _XOPEN_SOURCE           /* to make char dev if necessary */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <assert.h>
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <syslog.h>
+
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "mailbox.h"
+#include "../gpu_fftw.h"
 
 #define PAGE_SIZE (4*1024)
 
@@ -46,7 +55,7 @@ void *mapmem(unsigned base, unsigned size)
    base = base - offset;
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-      printf("can't open /dev/mem\nThis program should be run as root. Try prefixing command with: sudo\n");
+      say(LOG_ERR,"can't open /dev/mem\nRoot permissions are needed. Try prefixing command with: sudo\n");
       exit (-1);
    }
    void *mem = mmap(
@@ -60,7 +69,7 @@ void *mapmem(unsigned base, unsigned size)
    printf("base=0x%x, mem=%p\n", base, mem);
 #endif
    if (mem == MAP_FAILED) {
-      printf("mmap error %d\n", (int)mem);
+      say(LOG_ERR,"mmap error %d\n", (int)mem);
       exit (-1);
    }
    close(mem_fd);
@@ -71,7 +80,7 @@ void unmapmem(void *addr, unsigned size)
 {
    int s = munmap(addr, size);
    if (s != 0) {
-      printf("munmap error %d\n", s);
+      say(LOG_ERR,"munmap error %d\n", s);
       exit (-1);
    }
 }
@@ -85,7 +94,7 @@ static int mbox_property(int file_desc, void *buf)
    int ret_val = ioctl(file_desc, IOCTL_MBOX_PROPERTY, buf);
 
    if (ret_val < 0) {
-      printf("ioctl_set_msg failed:%d\n", ret_val);
+      say(LOG_INFO,"ioctl_set_msg failed:%d\n", ret_val);
    }
 
 #ifdef DEBUG
@@ -240,15 +249,31 @@ unsigned execute_qpu(int file_desc, unsigned num_qpus, unsigned control, unsigne
    return p[5];
 }
 
+int makechardev()
+{
+   dev_t dev = makedev(MAJOR_NUM,0);
+   if (mknod(DEVICE_FILE_NAME, S_IFCHR|0644, dev) != 0) {
+      say(LOG_ERR,"Can't create character device: %s, need root permission\n", DEVICE_FILE_NAME);
+      say(LOG_INFO,"Try manually creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
+      exit(-1);
+   };
+   return 1;
+}
+
 int mbox_open() {
    int file_desc;
 
    // open a char device file used for communicating with kernel mbox driver
    file_desc = open(DEVICE_FILE_NAME, 0);
    if (file_desc < 0) {
-      printf("Can't open device file: %s\n", DEVICE_FILE_NAME);
-      printf("Try creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
-      exit(-1);
+      //Try to make the char device
+      makechardev();
+      file_desc = open(DEVICE_FILE_NAME, 0);
+      if (file_desc < 0) {
+         say(LOG_ERR,"Can't open device file: %s\n", DEVICE_FILE_NAME);
+         say(LOG_INFO,"Try creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
+         exit(-1);
+      }
    }
    return file_desc;
 }
