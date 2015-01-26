@@ -26,15 +26,15 @@ void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
    }
    if (!strcmp("PREFIX","fftwf")) {
    for (j=0; j<jobs; j++) {
-      base = fft->in + j*fft->step; // input buffer
+      base = fft->in + j*fft->step; // We can copy the memory, same type
       memcpy((void*) base, (void*) in, N*2*sizeof(float));
    }
    } else {
    for (j=0; j<jobs; j++) {
-      base = fft->in + j*fft->step; // input buffer
+      base = fft->in + j*fft->step; // We need to convert float to bouble
       for (i=0; i<N; i++) {
-         base[i][0] = in[i][0];
-         base[i][1] = in[i][1];
+         base[i][0] = (float) in[i][0];
+         base[i][1] = (float) in[i][1];
       }
    }
    }
@@ -86,7 +86,7 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
    static int mb = -1;
    say(LOG_DEBUG,"%s","running gpu PREFIX_plan_dft_1d\n");
 
-   struct GPU_FFT *fft = NULL;
+   struct GPU_FFT* fft = NULL;
    if (mb==-1)
       mb=mbox_open();
 

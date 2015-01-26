@@ -35,7 +35,10 @@ you read the [limitations] section.
 Most users typically use fftw3 with double precission. Hopefully
 Andrew will add support for double precission to his work.
 
-
+## TODO
+- [ ] Fortran programs are not working, Fortran API needs to be added
+- [ ] fftw_malloc family can be overriden to avoid copying arrays (Careful!)
+- [ ] Test cases/benchmarks  for float squashing
 
 
 
