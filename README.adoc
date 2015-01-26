@@ -1,3 +1,4 @@
+:icons: font
 # Raspberry Pi gpu fftw3 drop-in replacement
 
 ## What you get
