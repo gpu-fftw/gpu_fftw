@@ -18,27 +18,30 @@ to use the GPU we have to write specialized code that makes use of the
 GPU_FFT api, and many programs that are already written do not use
 this API.g
 
-Most programs use the [fftw3](http://www.fftw.org) library, which is the state
-of the art on fft computation on a regular cpu. Even high-endg
-mathematical programs like octave and matlab use fftw3.
+Most programs use the [fftw3](http://www.fftw.org) library, which is
+one of the best available libraries for fft computation on a regular cpu. Even
+high-end mathematical programs like octave and matlab use fftw3.
 
 This is where the idea of GPU_FFTW  originated. The idea is to have
 **binary** compatibility with fftw3. The goal is to simply install
 gpu_fftw and let your programs take advantage of the GPU automatically.
 
-This is very hard to do, so there are some limitations, make sureg
+This is very hard to do, so there are some limitations, make sure
 you read the [limitations] section.
 
-## Limitations
+## :stop: Limitations
 
 * *Float precission*: For now, Andrew's work only supports _float_ precission.
-Most users typically use fftw3 with double precission. Hopefully
+Many users typically use fftw3 with double precission. Hopefully
 Andrew will add support for double precission to his work.
 
 ## TODO
-- [ ] Fortran programs are not working, Fortran API needs to be added
+- [ ] Fortran programs are not working (segfault), Fortran API needs to be added
 - [ ] fftw_malloc family can be overriden to avoid copying arrays (Careful!)
-- [ ] Test cases/benchmarks  for float squashing
+- [ ] Test cases/benchmarks for float squashing
+- [ ] Decide if float squashing should be default or not
+- [ ] r2c and c2r API missing, should we add it?
+- [ ] 2d API
 
 
 
