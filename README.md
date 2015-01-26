@@ -8,7 +8,7 @@ source code.  Binary compatibility with fftw3.
 quality. As always, use at your own risk.
 
 ## How to use it
-
+TBD
 
 ## Why?
 Thanks to the work of [Andrew Holme](http://www.aholme.co.uk/GPU_FFT/Main.htm) we

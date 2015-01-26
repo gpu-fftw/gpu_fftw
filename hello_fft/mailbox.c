@@ -56,7 +56,7 @@ void *mapmem(unsigned base, unsigned size)
    /* open /dev/mem */
    if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
       say(LOG_ERR,"can't open /dev/mem\nRoot permissions are needed. Try prefixing command with: sudo\n");
-      exit (-1);
+      return NULL;
    }
    void *mem = mmap(
       0,
@@ -70,7 +70,7 @@ void *mapmem(unsigned base, unsigned size)
 #endif
    if (mem == MAP_FAILED) {
       say(LOG_ERR,"mmap error %d\n", (int)mem);
-      exit (-1);
+      return NULL;
    }
    close(mem_fd);
    return (char *)mem + offset;
@@ -81,7 +81,6 @@ void unmapmem(void *addr, unsigned size)
    int s = munmap(addr, size);
    if (s != 0) {
       say(LOG_ERR,"munmap error %d\n", s);
-      exit (-1);
    }
 }
 
@@ -255,9 +254,9 @@ int makechardev()
    if (mknod(DEVICE_FILE_NAME, S_IFCHR|0644, dev) != 0) {
       say(LOG_ERR,"Can't create character device: %s - '%s'\n", DEVICE_FILE_NAME,strerror(errno));
       say(LOG_INFO,"Try manually creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
-      exit(-1);
+      return -1;
    };
-   return 1;
+   return 0;
 }
 
 int mbox_open() {
@@ -272,7 +271,7 @@ int mbox_open() {
       if (file_desc < 0) {
          say(LOG_ERR,"Can't open device file %s - '%s'\n", DEVICE_FILE_NAME,strerror(errno));
          say(LOG_INFO,"Try creating a device file with: sudo mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
-         exit(-1);
+         return -1;
       }
    }
    return file_desc;

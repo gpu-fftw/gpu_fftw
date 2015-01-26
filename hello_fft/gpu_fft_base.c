@@ -118,6 +118,8 @@ int gpu_fft_alloc (
 
     ptr->vc = mem_lock(mb, handle);
     ptr->arm.vptr = mapmem(ptr->vc+GPU_FFT_MEM_MAP, size);
+    if (!ptr->arm.vptr)
+       return -4;
 
     base = (struct GPU_FFT_BASE *) ptr->arm.vptr;
     base->peri   = peri;

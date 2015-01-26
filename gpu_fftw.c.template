@@ -89,6 +89,10 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
    struct GPU_FFT *fft = NULL;
    if (mb==-1)
       mb=mbox_open();
+
+   if (mb < 0)
+      return NULL;
+
    int jobs = 1;
    int direction = (sign == FFTW_FORWARD) ? GPU_FFT_FWD:GPU_FFT_REV;
    int ret = gpu_fft_prepare(mb, log2_N, direction, jobs, &fft);
@@ -126,7 +130,7 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
       metaplan = &mplan_arr[mplan_n++];
    else {
       say(LOG_ERR,"Sorry, ran out of space for plans: max %d plans",MPLAN_ARRSIZE);
-      exit(1);
+      goto use_fftw3;
    }
 
    metaplan->count_ptr = &mplan_n;
