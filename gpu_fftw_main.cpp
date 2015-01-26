@@ -146,7 +146,9 @@ void show_speed(int N,int loops)
 
    std::cout << "GPU FFTW " << (float) gfftw3_spd/fftw3_spd
       << " times faster (" << gfftw3_spd << " ffts/sec, "
-      <<  gfftw3_tim << " usec/fft)"<< fftw3_spd << std::endl;
+      <<  gfftw3_tim << " usec/fft, fftw3: "<< fftw3_spd
+      << " ffts/sec)" << std::endl;
+
 }
 
 void vsn()
