@@ -71,8 +71,8 @@ int gpu_fft_trans_prepare(
     ptr.arm.uptr[1] = ((char*)src->out) - ((char*)src->in); // output buffer offset
     ptr.arm.uptr[2] = dst->base.vc_msg;
     ptr.arm.uptr[3] = 0;
-    ptr.arm.uptr[4] = src->step * sizeof(struct GPU_FFT_COMPLEX);
-    ptr.arm.uptr[5] = dst->step * sizeof(struct GPU_FFT_COMPLEX);
+    ptr.arm.uptr[4] = src->step * sizeof(GPU_FFT_COMPLEX);
+    ptr.arm.uptr[5] = dst->step * sizeof(GPU_FFT_COMPLEX);
     ptr.arm.uptr[6] = src->x < dst->y? src->x : dst->y;
     ptr.arm.uptr[7] = src->y < dst->x? src->y : dst->x;
     base->vc_unifs[0] = gpu_fft_ptr_inc(&ptr, unif_bytes);

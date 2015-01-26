@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GPU_FFT_BUSY_WAIT_LIMIT (5<<12) // ~1ms
 
-typedef struct GPU_FFT_COMPLEX COMPLEX;
+typedef GPU_FFT_COMPLEX COMPLEX;
 
 int gpu_fft_prepare(
     int mb,         // mailbox file_desc

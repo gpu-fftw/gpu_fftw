@@ -17,7 +17,7 @@
 
 void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
 {
-   struct GPU_FFT_COMPLEX* base;
+   GPU_FFT_COMPLEX* base;
    int i,j;
    int jobs=1;
    if (in==NULL) {
@@ -33,8 +33,8 @@ void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
    for (j=0; j<jobs; j++) {
       base = fft->in + j*fft->step; // input buffer
       for (i=0; i<N; i++) {
-         base[i].re = in[i][0];
-         base[i].im = in[i][1];
+         base[i][0] = in[i][0];
+         base[i][1] = in[i][1];
       }
    }
    }
@@ -42,7 +42,7 @@ void SO_LOCAL copy_input(int N,PREFIX_complex* in,struct GPU_FFT* fft)
 
 void SO_LOCAL copy_output(int N,PREFIX_complex* restrict out,struct GPU_FFT* restrict fft)
 {
-   struct GPU_FFT_COMPLEX* restrict base;
+   GPU_FFT_COMPLEX* restrict base;
    int i,j;
    int jobs=1;
    if (out==NULL) {
@@ -61,8 +61,8 @@ void SO_LOCAL copy_output(int N,PREFIX_complex* restrict out,struct GPU_FFT* res
       for (j=0; j<jobs; j++) {
          base = fft->out + j*fft->step; // output buffer
          for (i=0; i<N; i++) {
-            out[i][0] = base[i].re;
-            out[i][1] = base[i].im;
+            out[i][0] = base[i][0];
+            out[i][1] = base[i][1];
          }
    }
 

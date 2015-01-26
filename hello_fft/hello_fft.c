@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     unsigned t[2];
     double tsq[2];
 
-    struct GPU_FFT_COMPLEX *base;
+    GPU_FFT_COMPLEX *base;
     struct GPU_FFT *fft;
 
     log2_N = argc>1? atoi(argv[1]) : 12; // 8 <= log2_N <= 21
@@ -78,9 +78,9 @@ int main(int argc, char *argv[]) {
 
         for (j=0; j<jobs; j++) {
             base = fft->in + j*fft->step; // input buffer
-            for (i=0; i<N; i++) base[i].re = base[i].im = 0;
+            for (i=0; i<N; i++) base[i][0] = base[i][1] = 0;
             freq = j+1;
-            base[freq].re = base[N-freq].re = 0.5;
+            base[freq][0] = base[N-freq][0] = 0.5;
         }
 
         usleep(1); // Yield to OS
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
             for (i=0; i<N; i++) {
                 double re = cos(2*GPU_FFT_PI*freq*i/N);
                 tsq[0] += pow(re, 2);
-                tsq[1] += pow(re - base[i].re, 2) + pow(base[i].im, 2);
+                tsq[1] += pow(re - base[i][0], 2) + pow(base[i][1], 2);
             }
         }
 

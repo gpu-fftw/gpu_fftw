@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     int x, y, ret, mb = mbox_open();
     unsigned t[4];
 
-    struct GPU_FFT_COMPLEX *row;
+    GPU_FFT_COMPLEX *row;
     struct GPU_FFT_TRANS *trans;
     struct GPU_FFT *fft_pass[2];
 
@@ -98,12 +98,12 @@ int main(int argc, char *argv[]) {
     // Clear input array
     for (y=0; y<N; y++) {
         row = GPU_FFT_ROW(fft_pass[0], in, y);
-        for (x=0; x<N; x++) row[x].re = row[x].im = 0;
+        for (x=0; x<N; x++) row[x][0] = row[x][1] = 0;
     }
 
     // Setup input data
-    GPU_FFT_ROW(fft_pass[0], in,   2)[  2].re = 60;
-    GPU_FFT_ROW(fft_pass[0], in, N-2)[N-2].re = 60;
+    GPU_FFT_ROW(fft_pass[0], in,   2)[  2][0] = 60;
+    GPU_FFT_ROW(fft_pass[0], in, N-2)[N-2][0] = 60;
 
     // ==> FFT() ==> T() ==> FFT() ==>
     usleep(1); /* yield to OS */   t[0] = Microseconds();
@@ -115,9 +115,9 @@ int main(int argc, char *argv[]) {
     for (y=0; y<N; y++) {
         row = GPU_FFT_ROW(fft_pass[1], out, y);
         for (x=0; x<N; x++) {
-            fputc(128+row[x].re, fp); // blue
-            fputc(128+row[x].re, fp); // green
-            fputc(128+row[x].re, fp); // red
+            fputc(128+row[x][0], fp); // blue
+            fputc(128+row[x][0], fp); // green
+            fputc(128+row[x][0], fp); // red
         }
     }
 

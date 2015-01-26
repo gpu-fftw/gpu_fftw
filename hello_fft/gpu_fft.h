@@ -36,13 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GPU_FFT_FWD 0 // forward FFT
 #define GPU_FFT_REV 1 // inverse FFT
 
-struct GPU_FFT_COMPLEX {
-    float re, im;
-};
+typedef float GPU_FFT_COMPLEX[2];
 
 struct GPU_FFT_PTR {
     unsigned vc;
-    union { struct GPU_FFT_COMPLEX *cptr;
+    union { GPU_FFT_COMPLEX        *cptr;
             void                   *vptr;
             char                   *bptr;
             float                  *fptr;
@@ -57,7 +55,7 @@ struct GPU_FFT_BASE {
 
 struct GPU_FFT {
     struct GPU_FFT_BASE base;
-    struct GPU_FFT_COMPLEX *in, *out;
+    GPU_FFT_COMPLEX *in, *out;
     int x, y, step;
 };
 

@@ -100,8 +100,8 @@ void show_accuracy(int N)
    }
    err = sqrt(err/N)/(rmax-rmin);
 
-   std::string hdr=std::string("GPU_FFTW/FFTW difference = ") + std::to_string(1000000.0*err) + "ppm (nrms error)";
-   std::cout << hdr << std::endl;
+   std::cout << "GPU_FFTW/FFTW difference = " << 1000000.0*err << "ppm (nrms error)"
+      << std::endl;
 }
 
 void show_speed(int N,int loops)
@@ -149,11 +149,20 @@ void show_speed(int N,int loops)
       <<  gfftw3_tim << " usec/fft)"<< fftw3_spd << std::endl;
 }
 
-int main(int argc,char **argv)
+void vsn()
 {
    std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
       << std::endl;
+}
+
+void tests()
+{
    test_override_fftw3();
    show_accuracy(256);
    show_speed(pow(2,10),1000);
+}
+int main(int argc,char **argv)
+{
+   vsn();
+   tests();
 }
