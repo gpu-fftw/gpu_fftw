@@ -5,6 +5,7 @@
 #include <complex>
 #include <cassert>
 #include <climits>
+#include "vsn.h"
 
 bool gpu_fftw_running(void)
 {
@@ -150,6 +151,8 @@ void show_speed(int N,int loops)
 
 int main(int argc,char **argv)
 {
+   std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
+      << std::endl;
    test_override_fftw3();
    show_accuracy(256);
    show_speed(pow(2,10),1000);

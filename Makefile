@@ -41,6 +41,8 @@ RPATH=
 instantiate=sed -e 's/PREFIX/$(1)/g' $(2) > $(3)
 make_so=$(CC) $(CFLAGS) -shared -fpic -Wl,-soname,libgpu$(1).so -o $@ $^ -ldl -l$(2)
 
+.PHONY: all vsn.h
+
 all: $(TARGETLIBS) $(TARGETEXES)
 
 ########################################################
@@ -71,7 +73,11 @@ libgpufftwf.so: libgpufftwf.so.$(RELVER)
 	ln -sf $< $@
 
 # main executable
-gpu_fftw: gpu_fftw_main.cpp libgpufftw.so libgpufftwf.so
+vsn.h:
+	 VSN="`git describe --always --tags --abbrev=0 | sed 's/^v//'`"; \
+		  echo "#define GPU_FFTW_VSN \"$$VSN\"" > vsn.h
+
+gpu_fftw: gpu_fftw_main.cpp vsn.h libgpufftw.so libgpufftwf.so
 	$(CXX) $(CXXFLAGS) $(RPATH) -o $@ $< $(MAIN_SRC) -L. -lfftw3f
 
 ########################################################
