@@ -1,10 +1,10 @@
 # Raspberry Pi gpu fftw3 drop-in replacement
 
 ## What you get
-Use the Raspberry Pi GPU to calculate FFTs without touching
-source code.  Binary compatibility with fftw3.g
+Use the Raspberry Pi GPU to calculate fast FFTs without touching
+source code.  Binary compatibility with fftw3.
 
-Note: This is an early alpha release, it is not productiong
+NOTE: This is an early alpha release, it is not productiong
 quality. As always, use at your own risk.
 
 ## How to use it
