@@ -19,8 +19,8 @@ RPILDFLAGS=-Wl,-O1,--sort-common,--as-needed,-z,relro
 VISIBILITY= -fvisibility=hidden
 CC        = $(RPICC)
 CXX       = $(RPICXX)
-CFLAGS   += $(RPICXXFLAGS) -std=c99 -Wall -pg $(VISIBILITY)
-CXXFLAGS += $(RPICXXFLAGS) -std=c++11 -Wall -pg  $(VISIBILITY) -fvisibility-inlines-hidden
+CFLAGS   += $(RPICXXFLAGS) -std=c99 -Wall -g $(VISIBILITY)
+CXXFLAGS += $(RPICXXFLAGS) -std=c++11 -Wall -g  $(VISIBILITY) -fvisibility-inlines-hidden
 RELVER    = 1
 TARGETLIBS= libgpufftw.so libgpufftwf.so
 TARGETEXES= gpu_fftw
@@ -74,7 +74,7 @@ libgpufftwf.so: libgpufftwf.so.$(RELVER)
 
 # main executable
 vsn.h:
-	 VSN="`git describe --always --tags --abbrev=0 | sed 's/^v//'`"; \
+	 VSN="`git describe --always --tags --abbrev=1 | sed 's/^v//'`"; \
 		  echo "#define GPU_FFTW_VSN \"$$VSN\"" > vsn.h
 
 gpu_fftw: gpu_fftw_main.cpp vsn.h libgpufftw.so libgpufftwf.so

@@ -1,12 +1,124 @@
 #include <fftw3.h>
 #include <cstdlib>
+#include <stdio.h>
+#include <unistd.h>
 #include <string>
+#include <string.h>
 #include <iostream>
 #include <complex>
 #include <cassert>
 #include <climits>
+
 #include "vsn.h"
 
+bool quiet = false;
+
+std::string exec(std::string cmd)
+{
+   FILE* pipe = popen(cmd.c_str(), "r");
+   if (!pipe) return "";
+
+   char buffer[128];
+   std::string result;
+   while(!feof(pipe)) {
+      if(fgets(buffer, 128, pipe) != nullptr)
+         result += buffer;
+   }
+   pclose(pipe);
+
+   return result;
+}
+
+std::string libfftw_file(char type)
+{
+   char prg[512];
+   prg[sizeof(prg)-1] = '\0';
+   // Get executable name
+   ssize_t len=readlink("/proc/self/exe",prg, sizeof(prg)-1);
+   if (len>0)
+      prg[len] = '\0';
+   else {
+      std::cerr << "Unable to determine location of fftw3." << std::endl;
+   }
+
+   //Run ldd on it, and parse fftw3 location
+   std::string prg1(prg);
+   std::string fftwlib;
+   fftwlib=exec(std::string(" ldd ") + prg1 + "| grep libfftw3" + type +" | cut -f 3 -d \\ ");
+   if (fftwlib.empty())
+      std::cerr << "Unable to determine location of libfftw3" << type << std::endl;
+
+   if (!fftwlib.empty() && fftwlib[fftwlib.length()-1] == '\n')
+      fftwlib.erase(fftwlib.length()-1);
+
+   return fftwlib;
+}
+
+std::string libgpufftw_file(char type)
+{
+   return std::string(std::string("./libgpufftw") + type + ".so");
+}
+
+// This code is not used,
+// we don't want to change symlinks
+// in /usr/lib ... just left for
+// internal development usage
+void enable(char type, bool dryrun)
+{
+   // type is '' for double and 'f' for float
+   std::string fftw = libfftw_file(type);
+   std::string gpufftw = libgpufftw_file(type);
+   //Link libgpufftw3X.so to libgpufftwX.so
+   if (!dryrun && symlink(fftw.c_str(),gpufftw.c_str()) != 0)
+   {
+      std::cerr << "Unable to make symbolic link: " << fftw
+         + " => " + gpufftw + ": '" + strerror(errno) + "'" << std::endl;
+   } else {
+      std::cout << fftw + " => " + gpufftw << std::endl;
+   }
+}
+
+void exec_other(int argc, char* argv[],char *envp[])
+{
+   const int MAXSIZE = 512;
+   char* newenvp[MAXSIZE];
+   std::string tmp("LD_PRELOAD=");
+   tmp+=libgpufftw_file('f');
+
+   //Copy environment and add LD_PRELOAD
+   int i=0;
+   while (envp[i] && i < MAXSIZE - 2) {
+      newenvp[i] = envp[i];
+      i++;
+   }
+   newenvp[i++] = const_cast<char*>(tmp.c_str());
+   newenvp[i] = nullptr;
+
+   if (argc < 2) {
+      std::cerr << "Usage: " << argv[0] << " <program to run> [arguments...]" << std::endl;
+      return;
+   }
+
+   if (!quiet) {
+      std::cerr << "Running '" << argv[1] << " ";
+      i=2;
+      while (argv[i]) {
+         std::cerr << argv[i] << ((i==argc-1) ? "":" ");
+         i++;
+      }
+      std::cerr << "' with gpu_fftw enabled"<< std::endl;
+   }
+
+   execve(argv[1], &(argv[1]), newenvp);
+
+   // execve() only returns on error
+   std::cerr << "Error executing " << argv[1] << ": '"
+      << strerror(errno) << "'" << std::endl;
+}
+
+/************************
+ *  Tests & Benchmarks  *
+ ************************/
 bool gpu_fftw_running(void)
 {
    return getenv("GPU_FFTW_ACTIVE")!=nullptr;
@@ -14,9 +126,9 @@ bool gpu_fftw_running(void)
 
 unsigned long usec_time(void)
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec*1000000 + ts.tv_nsec/1000;
+   struct timespec ts;
+   clock_gettime(CLOCK_REALTIME, &ts);
+   return ts.tv_sec*1000000 + ts.tv_nsec/1000;
 }
 
 unsigned long run_fft(int n,fftwf_complex* in,fftwf_complex* out,bool print,int loops=1)
@@ -94,9 +206,9 @@ void show_accuracy(int N)
    err_im = 0;
    for (int i = 0; i < N; ++i)
    {
-     err_re = out2[i][0]-out[i][0];
-     err_im = out2[i][1]-out[i][1];
-     err += err_re*err_re + err_im*err_im;
+      err_re = out2[i][0]-out[i][0];
+      err_im = out2[i][1]-out[i][1];
+      err += err_re*err_re + err_im*err_im;
    }
    err = sqrt(err/N)/(rmax-rmin);
 
@@ -138,9 +250,9 @@ void show_speed(int N,int loops)
    err_im = 0;
    for (int i = 0; i < N; ++i)
    {
-     err_re = out2[i][0]-out[i][0];
-     err_im = out2[i][1]-out[i][1];
-     err += err_re*err_re + err_im*err_im;
+      err_re = out2[i][0]-out[i][0];
+      err_im = out2[i][1]-out[i][1];
+      err += err_re*err_re + err_im*err_im;
    }
    err = sqrt(err/N)/(rmax-rmin);
 
@@ -148,7 +260,6 @@ void show_speed(int N,int loops)
       << " times faster (" << gfftw3_spd << " ffts/sec, "
       <<  gfftw3_tim << " usec/fft, fftw3: "<< fftw3_spd
       << " ffts/sec)" << std::endl;
-
 }
 
 void vsn()
@@ -157,14 +268,55 @@ void vsn()
       << std::endl;
 }
 
-void tests()
+bool tests()
 {
-   test_override_fftw3();
+   bool pass=false;
+   pass&=test_override_fftw3();
    show_accuracy(256);
    show_speed(pow(2,10),1000);
+   return pass;
 }
-int main(int argc,char **argv)
+
+void usage(char *name)
 {
    vsn();
-   tests();
+   std::cerr << "Usage: " << name << " <program> [arguments...]"
+      << std::endl;
+   std::cerr << "       " << name << " -t" << std::endl;
+   std::cerr <<  std::endl <<
+      "The first form runs <program> with gpu_fftw enabled,\n"
+      "the second runs tests and prints benchmark information.\n";
+}
+
+int main(int argc,char **argv, char* envp[])
+{
+   int opt;
+   char *test_argv[] = { argv[0], argv[0], (char*) "-z", nullptr };
+
+   if (argc < 2) {
+      usage(argv[0]);
+      return 2;
+   }
+
+   while ((opt = getopt(argc, argv, "ztqh")) != -1) {
+      switch (opt) {
+         case 'z': //Used only internally
+            return tests() ? 0:1;
+         case 't':
+            quiet=true;
+            vsn();
+            exec_other(3,test_argv,envp);
+            return 3;
+            break;
+         case 'q':
+            quiet = true;
+            break;
+         case 'h':
+            usage(argv[0]);
+            return 2;
+      }
+   }
+
+   exec_other(argc,&argv[optind-1],envp);
+   return 3; //if exec_other returns it is an error
 }
