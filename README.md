@@ -1,16 +1,21 @@
 # Raspberry Pi gpu fftw3 drop-in replacement
 
-## What you get
+## :gift: What you get
 Use the Raspberry Pi GPU to calculate fast FFTs without changing
 source code.  Binary compatibility with fftw3.
 
 :warning: This is an early alpha release, it is not productiong
 quality. As always, use at your own risk.
 
-## How to use it
-./gpu_fftw -d myfftprogram <args...>
+## :checkered_flag: How to use it
+```sh
+git clone https://github.com/gpu-fftw/gpu_fftw.git
+cd gpu_fftw
+make
+./gpu_fftw -D 1 -d myfftprogram <args...>
+```
 
-## Why?
+## :mag: Why?
 Thanks to the work of [Andrew Holme](http://www.aholme.co.uk/GPU_FFT/Main.htm) we
 can now have fast GPU aided FFTs on the Raspberry Pi. They can be up to ten
 times faster than running fftw3 by itself. However, in order
@@ -48,16 +53,15 @@ you read the [limitations] section.
 
 * 2d, 3d and real FFTs are not supported yet
 
-* If there is any problem starting the GPU fft (e.g. lack of memory or
-  permissions) gpu_fftw automatically falls back to fftw3.
+* **Auto-fallback**: If there is any problem starting the GPU fft (e.g. lack of
+  memory or permissions) gpu_fftw automatically falls back to fftw3.
 
 ## :bulb: TODO
 - [ ] Fortran programs are not working (segfault), Fortran API needs to be added
 - [ ] fftw_malloc family can be overriden to avoid copying arrays
-- [ ] Test cases/benchmarks for float squashing
+- [ ] Test cases/benchmarks for double squashing
 - [x] ~~Support double squashing~~
 - [ ] r2c and c2r API missing, should we add it?
 - [ ] 2d API
-
-
+- [ ] Drop root permissions asap
 
