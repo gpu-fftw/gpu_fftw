@@ -1,10 +1,10 @@
-# Raspberry Pi gpu fftw3 drop-in replacement
+# Run FFTW3 programs with Raspberry Pi GPU
 
 ## :gift: What you get
 Use the Raspberry Pi GPU to calculate fast FFTs without changing
-source code.  Binary compatibility with fftw3.
+source code.  Binary compatibility with fftw3 programs.
 
-:warning: This is an early alpha release, it is not productiong
+:warning: This is an early alpha release, it is not production
 quality. As always, use at your own risk.
 
 ## :checkered_flag: Quickstart 
@@ -24,19 +24,21 @@ gpu_fftw - Version 0.1.1-3-gcd19
 
 gpu_fftw:  INFO: running gpu fft
 gpu_fftw:  INFO: running gpu fft
-GPU FFT forward/reverse error = 0.636165ppm (nrms error)
+GPU FFT forward/reverse error = 0.680192ppm (nrms error)
 gpu_fftw:  INFO: Falling back to fftw3
 gpu_fftw:  INFO: running gpu fft
-GPU_FFTW/FFTW difference = 3.64287ppm (nrms error)
+GPU_FFTW/FFTW difference = 4.82646ppm (nrms error)
 gpu_fftw:  INFO: Falling back to fftw3
 gpu_fftw:  INFO: running gpu fft
-GPU FFTW 5.6921 times faster (11516 ffts/sec, 86.836 usec/fft, fftw3: 2023.15 ffts/sec)
+GPU FFTW 7.11652 times faster (11523.3 ffts/sec, 86.781 usec/fft, fftw3: 1619.23 ffts/sec)
 
 gpu_fftw:  INFO: Falling back to fftw3
 gpu_fftw:  INFO: running gpu fft
 Override FFT3W...PASSED
 Test suite passed.
 ```
+Notice for this run, GPU_FFTW ran 7 times faster than fftw3, it will vary
+with cpu usage, fft size, etc.
 Then you can run your program with:
 
 ```sh
@@ -73,10 +75,9 @@ you read the [limitations] section.
   work with your particular appplication. To enable double squashing use
   the -d option.
 
-* **N has to be a power of two**: N for the fft is limited to powers of two,
+* **N has to be a power of two**: N for the gpu fft is limited to powers of two,
   Log2(N) has to be in the range [8,21]. gpu_fftw falls back to fftw3 if N is
-  not a power of two or if it is
-  outside the supported range.
+  not a power of two or if it is outside the supported range.
 
 * 2d, 3d and real FFTs are not supported yet
 
@@ -84,7 +85,12 @@ you read the [limitations] section.
   memory or permissions) gpu_fftw automatically falls back to fftw3.
 
 * **Fortran**: fftw3 provides a fortran API, this is not supported yet, but
-  it is planned.
+  it is planned. Your fortran programs will not work at this point.
+
+* **Array copying**: gpu_fftw copies the data arrays back and forth.  It does
+  it in the fastest way possible, but still needs more memory than fftw3.
+  This will be fixed later on when we provide overrides for the fftw3 malloc family
+  of functions.
 
 ## :bulb: TODO
 - [ ] Fortran programs are not working (segfault), Fortran API needs to be added
