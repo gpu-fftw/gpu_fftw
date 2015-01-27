@@ -37,7 +37,7 @@ you read the [limitations] section.
 
 ## :eyes: Limitations
 
-* *Float precission*: For now, Andrew's work only supports _float_ precision.
+* **Float precission**: For now, Andrew's work only supports _float_ precision.
   Many users typically use fftw3 with double precision. Hopefully
   Andrew will add support for double precision to his work.
 
@@ -56,6 +56,9 @@ you read the [limitations] section.
 
 * **Auto-fallback**: If there is any problem starting the GPU fft (e.g. lack of
   memory or permissions) gpu_fftw automatically falls back to fftw3.
+
+* **Fortran**: fftw3 provides a fortran API, this is not supported yet, but
+  it is planned.
 
 ## :bulb: TODO
 - [ ] Fortran programs are not working (segfault), Fortran API needs to be added
