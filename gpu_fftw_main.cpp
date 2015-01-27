@@ -99,9 +99,9 @@ unsigned long usec_time(void)
    return ts.tv_sec*1000000 + ts.tv_nsec/1000;
 }
 
-unsigned long run_fft(int n,fftwf_complex* in,fftwf_complex* out,bool print,int loops=1)
+unsigned long run_fft(int n,fftwf_complex* in,fftwf_complex* out,int direction,bool print,int loops=1)
 {
-   auto plan= fftwf_plan_dft_1d(n, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+   auto plan= fftwf_plan_dft_1d(n, in, out, direction, FFTW_ESTIMATE);
    auto t1 = usec_time();
    for (int i = 0; i < loops; ++i)
       fftwf_execute(plan);
@@ -133,15 +133,54 @@ bool test_override_fftw3()
    fftwf_complex out2[256];
 
    // Should run fftw plan
-   run_fft(255,in,out,false);
+   run_fft(255,in,out,FFTW_FORWARD,false);
    pass=!gpu_fftw_running();
 
    // Should run gpu_fftw plan
-   run_fft(256,in2,out2,false);
+   run_fft(256,in2,out2,FFTW_FORWARD,false);
    pass&=gpu_fftw_running();
 
    print_test("Override FFT3W",pass);
    return pass;
+}
+
+void show_fwd_rev(int N)
+{
+   fftwf_complex in[N]={1,0,2,0,3,0,4,0,5,0,6,0,7,0,8,0};
+   fftwf_complex out[N];
+   fftwf_complex out2[N];
+   const int rmax=INT_MAX/10,rmin=INT_MIN/10;
+
+   srand((int)clock());
+   for (int i = 0; i < N; ++i)
+   {
+      in[i][0]=rmax - rand() % rmax - rmin;
+      in[i][1]=rmax - rand() % rmax - rmin;
+   }
+
+   double invN=1.0/(double)N;
+   run_fft(N,in,out,FFTW_FORWARD,false);
+   for (int i = 0; i < N; ++i)
+   {
+     out[i][0]*=invN;
+     out[i][1]*=invN;
+   }
+   run_fft(N,out,out2,FFTW_BACKWARD,false);
+
+   double err,err_re,err_im;
+   err    = 0;
+   err_re = 0;
+   err_im = 0;
+   for (int i = 0; i < N; ++i)
+   {
+      err_re = out2[i][0] - in[i][0];
+      err_im = out2[i][1] - in[i][1];
+      err += err_re*err_re + err_im*err_im;
+   }
+   err = sqrt(err/N)/(rmax-rmin);
+
+   std::cout << "GPU FFT forward/reverse error = " << 1000000.0*err << "ppm (nrms error)"
+      << std::endl;
 }
 
 void show_accuracy(int N)
@@ -160,12 +199,12 @@ void show_accuracy(int N)
 
    // Should run fftw plan
    setenv("GPU_FFTW_DISABLE","1",1);
-   run_fft(N,in,out,false);
+   run_fft(N,in,out,FFTW_FORWARD,false);
    assert(gpu_fftw_running()==false);
 
    // Should run gpu_fftw plan
    unsetenv("GPU_FFTW_DISABLE");
-   run_fft(N,in,out2,false);
+   run_fft(N,in,out2,FFTW_FORWARD,false);
    //assert(gpu_fftw_running()==true);
 
    double err,err_re,err_im;
@@ -200,13 +239,13 @@ void show_speed(int N,int loops)
 
    // Should run fftw plan
    setenv("GPU_FFTW_DISABLE","1",1);
-   auto fusecs = run_fft(N,in,out,false,loops);
+   auto fusecs = run_fft(N,in,out,FFTW_FORWARD,false,loops);
    double fftw3_spd=loops*1000000.0/(double) fusecs;
    assert(gpu_fftw_running()==false);
 
    // Should run gpu_fftw plan
    unsetenv("GPU_FFTW_DISABLE");
-   auto gusecs = run_fft(N,in,out2,false,loops);
+   auto gusecs = run_fft(N,in,out2,FFTW_FORWARD,false,loops);
    double gfftw3_spd=loops*1000000.0/(double)(gusecs);
    double gfftw3_tim=(double)(gusecs)/loops;
 
@@ -230,12 +269,20 @@ void show_speed(int N,int loops)
       << " ffts/sec)" << std::endl;
 }
 
+
 bool tests()
 {
-   bool pass=false;
-   pass&=test_override_fftw3();
+   bool pass=true;
+   show_fwd_rev(256);
    show_accuracy(256);
    show_speed(pow(2,10),1000);
+   std::cerr << std::endl;
+   pass&=test_override_fftw3();
+
+   if (pass)
+      std::cerr << "Test suite passed." << std::endl;
+   else
+      std::cerr << "Test suite ***** FAILED" << std::endl;
    return pass;
 }
 
