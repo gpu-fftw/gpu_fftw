@@ -14,77 +14,20 @@
 bool quiet = false;
 int dbglvl = 0;
 
-std::string exec(std::string cmd)
-{
-   FILE* pipe = popen(cmd.c_str(), "r");
-   if (!pipe) return "";
-
-   char buffer[128];
-   std::string result;
-   while(!feof(pipe)) {
-      if(fgets(buffer, 128, pipe) != nullptr)
-         result += buffer;
-   }
-   pclose(pipe);
-
-   return result;
-}
-
-std::string libfftw_file(char type)
-{
-   char prg[512];
-   prg[sizeof(prg)-1] = '\0';
-   // Get executable name
-   ssize_t len=readlink("/proc/self/exe",prg, sizeof(prg)-1);
-   if (len>0)
-      prg[len] = '\0';
-   else {
-      std::cerr << "Unable to determine location of fftw3." << std::endl;
-   }
-
-   //Run ldd on it, and parse fftw3 location
-   std::string prg1(prg);
-   std::string fftwlib;
-   fftwlib=exec(std::string(" ldd ") + prg1 + "| grep libfftw3" + type +" | cut -f 3 -d \\ ");
-   if (fftwlib.empty())
-      std::cerr << "Unable to determine location of libfftw3" << type << std::endl;
-
-   if (!fftwlib.empty() && fftwlib[fftwlib.length()-1] == '\n')
-      fftwlib.erase(fftwlib.length()-1);
-
-   return fftwlib;
-}
-
-std::string libgpufftw_file(char type)
+std::string libgpufftw_file(const char* type="")
 {
    return std::string(std::string("./libgpufftw") + type + ".so");
 }
 
-// This code is not used,
-// we don't want to change symlinks
-// in /usr/lib ... just left for
-// internal development usage
-void enable(char type, bool dryrun)
-{
-   // type is '' for double and 'f' for float
-   std::string fftw = libfftw_file(type);
-   std::string gpufftw = libgpufftw_file(type);
-   //Link libgpufftw3X.so to libgpufftwX.so
-   if (!dryrun && symlink(fftw.c_str(),gpufftw.c_str()) != 0)
-   {
-      std::cerr << "Unable to make symbolic link: " << fftw
-         + " => " + gpufftw + ": '" + strerror(errno) + "'" << std::endl;
-   } else {
-      std::cout << fftw + " => " + gpufftw << std::endl;
-   }
-}
-
-void exec_other(int argc, char* argv[],char *envp[])
+void exec_other(int argc, char* argv[],char *envp[],bool dblsquash)
 {
    const int MAXSIZE = 512;
    char* newenvp[MAXSIZE];
    std::string tmp("LD_PRELOAD=");
-   tmp+=libgpufftw_file('f');
+   tmp+=libgpufftw_file("f");
+   if (dblsquash) {
+      tmp+=":" + libgpufftw_file();
+   }
 
    //Copy environment and add LD_PRELOAD
    int i=0;
@@ -111,7 +54,8 @@ void exec_other(int argc, char* argv[],char *envp[])
          std::cerr << argv[i] << ((i==argc-1) ? "":" ");
          i++;
       }
-      std::cerr << "' with gpu_fftw enabled"<< std::endl;
+      std::cerr << "' with gpu_fftw enabled"
+         << (dblsquash ? " and double squash":"") << std::endl;
    }
 
    execve(argv[1], &(argv[1]), newenvp);
@@ -297,6 +241,7 @@ void usage(char *name)
 int main(int argc,char **argv, char* envp[])
 {
    int opt;
+   bool dblsquash=false;
    char *test_argv[] = { argv[0], argv[0], (char*) "-z", nullptr };
 
    if (argc < 2) {
@@ -311,7 +256,7 @@ int main(int argc,char **argv, char* envp[])
          case 't':
             vsn();
             quiet=true;
-            exec_other(3,test_argv,envp);
+            exec_other(3,test_argv,envp,true);
             return 3;
             break;
          case 'q':
@@ -320,6 +265,9 @@ int main(int argc,char **argv, char* envp[])
          case 'D':
             dbglvl= std::stoi(optarg);
             break;
+         case 'd':
+            dblsquash=true;
+            break;
          case 'h':
             usage(argv[0]);
             return 2;
@@ -327,6 +275,6 @@ int main(int argc,char **argv, char* envp[])
    }
 
    vsn();
-   exec_other(argc,&argv[optind-1],envp);
+   exec_other(argc,&argv[optind-1],envp,dblsquash);
    return 3; //if exec_other returns it is an error
 }
