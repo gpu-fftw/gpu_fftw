@@ -7,15 +7,41 @@ source code.  Binary compatibility with fftw3.
 :warning: This is an early alpha release, it is not productiong
 quality. As always, use at your own risk.
 
-## :checkered_flag: How to use it
+## :checkered_flag: Quickstart 
 Make sure you have fftw3 installed first.
 ```sh
 git clone https://github.com/gpu-fftw/gpu_fftw.git
 cd gpu_fftw
 make
-./gpu_fftw -D 1 -d myfftprogram <args...>
 ```
+After make finishes run the following to make sure everything is working:
+```sh
+sudo ./gpu_fftw -D 1 -t
+```
+You should see something like this:
+```sh
+gpu_fftw - Version 0.1.1-3-gcd19
 
+gpu_fftw:  INFO: running gpu fft
+gpu_fftw:  INFO: running gpu fft
+GPU FFT forward/reverse error = 0.636165ppm (nrms error)
+gpu_fftw:  INFO: Falling back to fftw3
+gpu_fftw:  INFO: running gpu fft
+GPU_FFTW/FFTW difference = 3.64287ppm (nrms error)
+gpu_fftw:  INFO: Falling back to fftw3
+gpu_fftw:  INFO: running gpu fft
+GPU FFTW 5.6921 times faster (11516 ffts/sec, 86.836 usec/fft, fftw3: 2023.15 ffts/sec)
+
+gpu_fftw:  INFO: Falling back to fftw3
+gpu_fftw:  INFO: running gpu fft
+Override FFT3W...PASSED
+Test suite passed.
+```
+Then you can run your program with:
+
+```sh
+sudo ./gpu_fftw -D 1 -d myfftprogram <args...>
+```
 ## :mag: Why?
 Thanks to the work of [Andrew Holme](http://www.aholme.co.uk/GPU_FFT/Main.htm) we
 can now have fast GPU aided FFTs on the Raspberry Pi. They can be up to ten
