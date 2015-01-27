@@ -8,6 +8,7 @@ source code.  Binary compatibility with fftw3.
 quality. As always, use at your own risk.
 
 ## :checkered_flag: How to use it
+Make sure you have fftw3 installed first.
 ```sh
 git clone https://github.com/gpu-fftw/gpu_fftw.git
 cd gpu_fftw
