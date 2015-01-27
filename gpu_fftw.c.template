@@ -84,7 +84,7 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
       unsigned int flags)
 {
    static int mb = -1;
-   say(LOG_DEBUG,"%s","running gpu PREFIX_plan_dft_1d\n");
+   say(LOG_INFO,"%s","running gpu fft\n");
 
    struct GPU_FFT* fft = NULL;
    if (mb==-1)
@@ -158,7 +158,7 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
    } else {
 
 use_fftw3:
-      say(LOG_DEBUG,"%s","running fftw PREFIX_plan_dft_1d\n");
+      say(LOG_INFO,"%s","Falling back to fftw3\n");
       PREFIX_plan plan = (*fftw_plan_fun)(n,in,out,sign,flags);
       metaplan->gpu=false;
       metaplan->plan=(void*)plan;
