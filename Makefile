@@ -33,6 +33,11 @@ SHARED_SRC= gpu_fftw_util.c \
 				hello_fft/gpu_fft_shaders.c
 MAIN_SRC  =
 
+ifneq ($(shell test -d ~/x-tools && echo xcompile),xcompile)
+	CC=gcc
+	CXX=g++
+endif
+
 #TODO: security risk
 #RPATH=-Wl,-rpath,'$$ORIGIN/.'
 RPATH=
