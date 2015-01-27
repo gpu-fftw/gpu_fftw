@@ -6,7 +6,10 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifndef S_SPLINT_S
 #include <syslog.h>
@@ -52,6 +55,8 @@ SO_LOCAL void* orig_func(const char* oname,const void* curr_fun)
 
 SO_LOCAL void say( const int errlvl, const char *fmt, ...)
 {
+   static int is_ctty = -1;
+
    /* returns 0 if there is no number in then env. variable*/
    char *envdbg = getenv("GPU_FFTW_DEBUG");
 	char buf[1024];
@@ -68,7 +73,7 @@ SO_LOCAL void say( const int errlvl, const char *fmt, ...)
             err_str = (char*) "gpu_fftw: ERROR: ";
             break;
          case LOG_INFO:
-            err_str = (char*) "gpu_fftw: INFO: ";
+            err_str = (char*) "gpu_fftw:  INFO: ";
             break;
          case LOG_DEBUG:
             err_str = (char*) "gpu_fftw: DEBUG: ";
@@ -83,9 +88,21 @@ SO_LOCAL void say( const int errlvl, const char *fmt, ...)
       va_start(ap, fmt);
       vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, ap);
       va_end(ap);
-      /*if ( open("/dev/tty", O_RDWR)  < 0)
+
+      if (is_ctty==-1) {
+         int res=open("/proc/self/fd/0", O_NOCTTY|O_NOFOLLOW);
+         if (res>0) // should never happen b/c proc/self/fd/0 is a symlink
+            is_ctty = 1;
+         else
+            if (errno==ELOOP) // we have a symlink
+               is_ctty = 1;
+            else
+               is_ctty = 0;
+      }
+
+      if (!is_ctty)
          syslog((errlvl == LOG_ERR) ? LOG_ERR : LOG_INFO, "%s", buf);
-      else*/
+      else
          (void) fprintf(stderr, "%s",buf);
    }
 }
