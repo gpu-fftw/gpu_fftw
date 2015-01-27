@@ -19,6 +19,25 @@ std::string libgpufftw_file(const char* type="")
    return std::string(std::string("./libgpufftw") + type + ".so");
 }
 
+void vsn()
+{
+   if (!quiet)
+      std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
+         << std::endl;
+}
+
+void usage(const char *name="gpu_fftw")
+{
+   vsn();
+   std::cerr << "Usage: " << name << " <program> [arguments...]"
+      << std::endl;
+   std::cerr << "       " << name << " -t" << std::endl;
+   std::cerr <<  std::endl <<
+      "The first form runs <program> with gpu_fftw enabled,\n"
+      "the second runs tests and prints benchmark information.\n";
+}
+
+// Argc and argv are the values for the program to be executed
 void exec_other(int argc, char* argv[],char *envp[],bool dblsquash)
 {
    const int MAXSIZE = 512;
@@ -42,14 +61,14 @@ void exec_other(int argc, char* argv[],char *envp[],bool dblsquash)
    }
    newenvp[i] = nullptr;
 
-   if (argc < 2) {
-      std::cerr << "Usage: " << argv[0] << " <program to run> [arguments...]" << std::endl;
+   if (argc < 1) {
+      usage();
       return;
    }
 
    if (!quiet) {
-      std::cerr << "Running '" << argv[1] << " ";
-      i=2;
+      std::cerr << "Running '" << argv[0] << " ";
+      i=1;
       while (argv[i]) {
          std::cerr << argv[i] << ((i==argc-1) ? "":" ");
          i++;
@@ -58,10 +77,10 @@ void exec_other(int argc, char* argv[],char *envp[],bool dblsquash)
          << (dblsquash ? " and double squash":"") << std::endl;
    }
 
-   execve(argv[1], &(argv[1]), newenvp);
+   execve(argv[0], &(argv[0]), newenvp);
 
    // execve() only returns on error
-   std::cerr << "Error executing " << argv[1] << ": '"
+   std::cerr << "Error executing " << argv[0] << ": '"
       << strerror(errno) << "'" << std::endl;
 }
 
@@ -211,13 +230,6 @@ void show_speed(int N,int loops)
       << " ffts/sec)" << std::endl;
 }
 
-void vsn()
-{
-   if (!quiet)
-      std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
-         << std::endl;
-}
-
 bool tests()
 {
    bool pass=false;
@@ -227,22 +239,11 @@ bool tests()
    return pass;
 }
 
-void usage(char *name)
-{
-   vsn();
-   std::cerr << "Usage: " << name << " <program> [arguments...]"
-      << std::endl;
-   std::cerr << "       " << name << " -t" << std::endl;
-   std::cerr <<  std::endl <<
-      "The first form runs <program> with gpu_fftw enabled,\n"
-      "the second runs tests and prints benchmark information.\n";
-}
-
 int main(int argc,char **argv, char* envp[])
 {
    int opt;
    bool dblsquash=false;
-   char *test_argv[] = { argv[0], argv[0], (char*) "-z", nullptr };
+   char *test_argv[] = { argv[0], (char*) "-z", nullptr };
 
    if (argc < 2) {
       usage(argv[0]);
@@ -256,7 +257,7 @@ int main(int argc,char **argv, char* envp[])
          case 't':
             vsn();
             quiet=true;
-            exec_other(3,test_argv,envp,true);
+            exec_other(2,test_argv,envp,true);
             return 3;
             break;
          case 'q':
@@ -275,6 +276,6 @@ int main(int argc,char **argv, char* envp[])
    }
 
    vsn();
-   exec_other(argc,&argv[optind-1],envp,dblsquash);
+   exec_other(argc-optind,&argv[optind],envp,dblsquash);
    return 3; //if exec_other returns it is an error
 }
