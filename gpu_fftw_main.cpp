@@ -12,6 +12,7 @@
 #include "vsn.h"
 
 bool quiet = false;
+int dbglvl = 0;
 
 std::string exec(std::string cmd)
 {
@@ -87,11 +88,15 @@ void exec_other(int argc, char* argv[],char *envp[])
 
    //Copy environment and add LD_PRELOAD
    int i=0;
-   while (envp[i] && i < MAXSIZE - 2) {
+   while (envp[i] && i < MAXSIZE - 3) {
       newenvp[i] = envp[i];
       i++;
    }
    newenvp[i++] = const_cast<char*>(tmp.c_str());
+   if (dbglvl>0) {
+      tmp = "GPU_FFTW_DEBUG=" + std::to_string(dbglvl+5);
+      newenvp[i++] = const_cast<char*>(tmp.c_str());
+   }
    newenvp[i] = nullptr;
 
    if (argc < 2) {
@@ -264,8 +269,9 @@ void show_speed(int N,int loops)
 
 void vsn()
 {
-   std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
-      << std::endl;
+   if (!quiet)
+      std::cout << "gpu_fftw - Version " << GPU_FFTW_VSN << std::endl
+         << std::endl;
 }
 
 bool tests()
@@ -298,18 +304,21 @@ int main(int argc,char **argv, char* envp[])
       return 2;
    }
 
-   while ((opt = getopt(argc, argv, "ztqh")) != -1) {
+   while ((opt = getopt(argc, argv, "ztqhdD:")) != -1) {
       switch (opt) {
          case 'z': //Used only internally
             return tests() ? 0:1;
          case 't':
-            quiet=true;
             vsn();
+            quiet=true;
             exec_other(3,test_argv,envp);
             return 3;
             break;
          case 'q':
             quiet = true;
+            break;
+         case 'D':
+            dbglvl= std::stoi(optarg);
             break;
          case 'h':
             usage(argv[0]);
@@ -317,6 +326,7 @@ int main(int argc,char **argv, char* envp[])
       }
    }
 
+   vsn();
    exec_other(argc,&argv[optind-1],envp);
    return 3; //if exec_other returns it is an error
 }
