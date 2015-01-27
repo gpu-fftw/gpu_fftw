@@ -29,7 +29,7 @@ gpu_fftw and let your programs take advantage of the GPU.
 This is not easy to do, so there are some limitations, make sure
 you read the [limitations] section.
 
-## :stop: Limitations
+## :eyes: Limitations
 
 * *Float precission*: For now, Andrew's work only supports _float_ precision.
   Many users typically use fftw3 with double precision. Hopefully
@@ -51,7 +51,7 @@ you read the [limitations] section.
 * If there is any problem starting the GPU fft (e.g. lack of memory or
   permissions) gpu_fftw automatically falls back to fftw3.
 
-## TODO
+## :bulb: TODO
 - [ ] Fortran programs are not working (segfault), Fortran API needs to be added
 - [ ] fftw_malloc family can be overriden to avoid copying arrays
 - [ ] Test cases/benchmarks for float squashing
