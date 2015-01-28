@@ -211,3 +211,28 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
       (*fftw_destroy_plan_fun)((PREFIX_plan) metaplan->plan);
 }
 
+/*==========================================================================*
+ *                      FORTRAN API
+ *==========================================================================*
+ * SUFFIX: fortran functions have a _ or a __ at the end
+ *         depending on the compiler, so we provide both versions
+ * PARAMS: function parameters in fortran are always a pointer, and
+ *         from what I see have no return value */
+
+/*****************
+ *  Execute      *
+ *****************/
+
+/* This is done by looking at the source code in:
+ * https://github.com/FFTW/fftw3/blob/cde4559ba9b822166cb88a84a0994fdb83a2061c/api/f77funcs.h
+ *
+ * We see for example, that the execute function does more than simply call the C
+ * equivalent, so we need to override that function;
+
+ * This is a partial implementation, functions are missing, but the basic 1d
+ * plan, execute and destroy should work, b/c plan and destroy simply
+ * call the equivalent C function, they don't need to be overriden  */
+void SO_EXPORT FPREFIXfftw_execute__(const PREFIX_plan* plan)
+{
+   PREFIX_execute(*plan);
+}

@@ -33,6 +33,7 @@ SHARED_SRC= gpu_fftw_util.c \
 				hello_fft/gpu_fft_shaders.c
 MAIN_SRC  =
 
+#Skip cross-compiling if the x-tools directory is not present in $HOME
 ifneq ($(shell test -d ~/x-tools && echo xcompile),xcompile)
 	CC=gcc
 	CXX=g++
@@ -42,8 +43,9 @@ endif
 #RPATH=-Wl,-rpath,'$$ORIGIN/.'
 RPATH=
 
-
-instantiate=sed -e 's/PREFIX/$(1)/g' $(2) > $(3)
+# $(1) - C prefix: fftwf for float and fftw for double
+# $(2) - Fortran prefix: s for float and d for double
+instantiate=sed -e 's/FPREFIX/$(2)/g' -e 's/PREFIX/$(1)/g' $(3) > $(4)
 make_so=$(CC) $(CFLAGS) -shared -fpic -Wl,-soname,libgpu$(1).so -o $@ $^ -ldl -l$(2)
 
 .PHONY: all vsn.h
@@ -58,10 +60,10 @@ all: $(TARGETLIBS) $(TARGETEXES)
 # fftw  -> double precission
 # fftwf -> single (float) precission
 gpu_fftw.c: gpu_fftw.c.template
-	$(call instantiate,fftw,$<,$@)
+	$(call instantiate,fftw,s,$<,$@)
 
 gpu_fftwf.c: gpu_fftw.c.template
-	$(call instantiate,fftwf,$<,$@)
+	$(call instantiate,fftwf,d,$<,$@)
 
 # double precision shared lib
 libgpufftw.so.1: gpu_fftw.c $(SHARED_SRC)

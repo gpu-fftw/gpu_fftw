@@ -29,12 +29,21 @@ void vsn()
 void usage(const char *name="gpu_fftw")
 {
    vsn();
-   std::cerr << "Usage: " << name << " <program> [arguments...]"
+   std::cerr << "Usage: " << name << " [options] -- <program> [arguments...]"
       << std::endl;
    std::cerr << "       " << name << " -t" << std::endl;
    std::cerr <<  std::endl <<
+      "        -D <level>      set debug level, 0 is default\n"
+      "        -d              Run gpu fft, even if the user requested\n"
+      "                        double precision. We squash doubles into\n"
+      "                        floats.\n"
+      "        -h              this help\n"
+      "        -t              Test suite and benchmarks\n"
+      "\n"
       "The first form runs <program> with gpu_fftw enabled,\n"
-      "the second runs tests and prints benchmark information.\n";
+      "the second runs tests and prints benchmark information.\n"
+      "To see if the GPU is running and when it fallbacks to fftw3 do this:\n"
+      "   ./gpu_fftw -D 1 -d -- <your_fftw3_program> [your_program_arguments]\n";
 }
 
 // Argc and argv are the values for the program to be executed
