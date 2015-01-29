@@ -20,6 +20,14 @@
 /* see http://stackoverflow.com/questions/600293/how-to-check-if-a-number-is-a-power-of-2 */
 #define IS_2_PWR(x) (((x) & (x-1)) == 0)
 
+/* a fingerprint is used to distinguish gpu_fftw pointers from fftw3 pointers
+ * in order to prevent segfaults */
+SO_LOCAL bool fingerprint_ok(void *p)
+{
+   static unsigned char fprint[FINGERPRINTSZ] = FINGERPRINT;
+   return !memcmp(p,(void*)fprint,FINGERPRINTSZ);
+}
+
 /* This function relies on the fact that i>=2 and is a power of 2 */
 SO_LOCAL unsigned int log2u(unsigned int i)
 {

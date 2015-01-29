@@ -60,10 +60,10 @@ all: $(TARGETLIBS) $(TARGETEXES)
 # fftw  -> double precission
 # fftwf -> single (float) precission
 gpu_fftw.c: gpu_fftw.c.template
-	$(call instantiate,fftw,s,$<,$@)
+	$(call instantiate,fftw,d,$<,$@)
 
 gpu_fftwf.c: gpu_fftw.c.template
-	$(call instantiate,fftwf,d,$<,$@)
+	$(call instantiate,fftwf,s,$<,$@)
 
 # double precision shared lib
 libgpufftw.so.1: gpu_fftw.c $(SHARED_SRC)

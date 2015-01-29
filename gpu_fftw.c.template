@@ -116,6 +116,7 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
 
 PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_complex *out, int sign, unsigned flags)
 {
+   static unsigned char fprint[FINGERPRINTSZ] = FINGERPRINT;
    static ptr_PREFIX_plan_dft_1d fftw_plan_fun=NULL;
    static struct GPU_FFTW_PLAN mplan_arr[MPLAN_ARRSIZE];
    struct GPU_FFTW_PLAN* metaplan;
@@ -133,6 +134,7 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
       goto use_fftw3;
    }
 
+   memcpy((void*)metaplan->fprint,(void*)fprint,FINGERPRINTSZ);
    metaplan->count_ptr = &mplan_n;
    metaplan->n=n;
    metaplan->out=(void*) out;
@@ -180,14 +182,20 @@ void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
    if (fftw_execute_fun==NULL)
       fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
 
-   if (metaplan->gpu) {
+   if (!fingerprint_ok((void*)metaplan)) {
+      say(LOG_ERR,"Fingerprint mismatch in execute, falling back to fftw3\n");
+      (*fftw_execute_fun)(plan);
+      return;
+   }
+
+   if ( metaplan->gpu ) {
       gpu_fft_execute( (struct GPU_FFT*) metaplan->plan);
       copy_output(metaplan->n,
             (PREFIX_complex*) metaplan->out,
             (struct GPU_FFT*) metaplan->plan);
    }
    else
-      (*fftw_execute_fun)( (PREFIX_plan) metaplan->plan);
+      (*fftw_execute_fun)((PREFIX_plan) metaplan->plan);
 }
 
 /*************
@@ -199,6 +207,12 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
 {
    static ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=NULL;
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
+
+   if (!fingerprint_ok((void*)metaplan)) {
+      say(LOG_ERR,"Fingerprint mismatch in destroy_plan, falling back to fftw3\n");
+      (*fftw_destroy_plan_fun)(plan);
+      return;
+   }
 
    (*metaplan->count_ptr)--;
    if (fftw_destroy_plan_fun==NULL)
@@ -232,7 +246,7 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
  * This is a partial implementation, functions are missing, but the basic 1d
  * plan, execute and destroy should work, b/c plan and destroy simply
  * call the equivalent C function, they don't need to be overriden  */
-void SO_EXPORT FPREFIXfftw_execute__(const PREFIX_plan* plan)
+void SO_EXPORT FPREFIXfftw_execute_(const PREFIX_plan* plan)
 {
    PREFIX_execute(*plan);
 }
