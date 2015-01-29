@@ -208,6 +208,9 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
    static ptr_PREFIX_destroy_plan fftw_destroy_plan_fun=NULL;
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
 
+   if (fftw_destroy_plan_fun==NULL)
+      fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
+
    if (!fingerprint_ok((void*)metaplan)) {
       say(LOG_ERR,"Falling back to fftw3 - fingerprint mismatch in destroy_plan\n");
       (*fftw_destroy_plan_fun)(plan);
@@ -215,8 +218,6 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
    }
 
    (*metaplan->count_ptr)--;
-   if (fftw_destroy_plan_fun==NULL)
-      fftw_destroy_plan_fun=orig_func("PREFIX_destroy_plan",PREFIX_destroy_plan);
 
    if (metaplan->gpu) {
       gpu_fft_release( (struct GPU_FFT*) metaplan->plan );
