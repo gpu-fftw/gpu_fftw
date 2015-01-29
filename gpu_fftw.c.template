@@ -84,7 +84,6 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
       unsigned int flags)
 {
    static int mb = -1;
-   say(LOG_INFO,"plan - gpu fft plan running (N=%d,%s)\n",N,(sign==FFTW_FORWARD) ? "forward":"backward");
 
    struct GPU_FFT* fft = NULL;
    if (mb==-1)
@@ -155,6 +154,8 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
       else {
          copy_input(n,in,(struct GPU_FFT*) metaplan->plan);
          gpu_active(true);
+         say(LOG_INFO,"plan #%d - gpu fft plan running (N=%d,%s)\n",mplan_n,n,
+               (sign==FFTW_FORWARD) ? "forward":"backward");
          return (PREFIX_plan) metaplan;
       }
    } else {
@@ -220,6 +221,7 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
    (*metaplan->count_ptr)--;
 
    if (metaplan->gpu) {
+      say(LOG_INFO,"plan #%d - released (N=%d)\n",*metaplan->count_ptr + 1,metaplan->n);
       gpu_fft_release( (struct GPU_FFT*) metaplan->plan );
    }
    else

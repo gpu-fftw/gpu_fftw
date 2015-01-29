@@ -84,7 +84,7 @@ SO_LOCAL void say( const int errlvl, const char *fmt, ...)
             err_str = (char*) "gpu_fftw:  INFO: ";
             break;
          case LOG_DEBUG:
-            err_str = (char*) "gpu_fftw: DEBUG: ";
+            err_str = (char*) "gpu_fftw: DEBUG:   ";
             break;
          default:
             err_str = (char*) "gpu_fftw: ";
