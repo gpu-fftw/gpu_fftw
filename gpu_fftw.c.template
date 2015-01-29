@@ -122,6 +122,14 @@ PREFIX_plan SO_EXPORT PREFIX_plan_dft_1d(int n, PREFIX_complex *in, PREFIX_compl
    static int mplan_n = 0;
    static char* env=NULL;
 
+   /* This is triggered by the destructor function */
+   if (n==-1) { 
+      /* Clean unreleased plans */
+      for (int i = mplan_n - 1; i >= 0; --i)
+         PREFIX_destroy_plan((PREFIX_plan) &mplan_arr[i]);
+      return NULL;
+   }
+
    if (fftw_plan_fun==NULL)
       fftw_plan_fun=orig_func("PREFIX_plan_dft_1d",PREFIX_plan_dft_1d);
 
@@ -226,6 +234,11 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
    }
    else
       (*fftw_destroy_plan_fun)((PREFIX_plan) metaplan->plan);
+}
+
+void SO_LOCAL __attribute__ ((destructor)) clean_undestroyed_plans()
+{
+   PREFIX_plan_dft_1d(-1, NULL, NULL, 0, 0);
 }
 
 /*==========================================================================*
