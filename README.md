@@ -93,4 +93,4 @@ you read the [limitations] section.
 - [ ] 2d API
 - [ ] Drop root permissions asap
 - [ ] Fortran API for compilers other than GNU fortran
-
+- [ ] support for fftw3_threads, so that octave works
