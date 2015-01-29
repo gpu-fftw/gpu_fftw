@@ -47,8 +47,8 @@ SO_LOCAL void* orig_func(const char* oname,const void* curr_fun)
    (void) dlerror();
    ofun_ptr = dlsym(RTLD_NEXT,oname);
 
-   say(LOG_DEBUG,"original %s -> %p\n",oname,ofun_ptr);
-   say(LOG_DEBUG,"gpu %s -> %p\n",oname,curr_fun);
+   say(LOG_DEBUG,"original %s(...) -> %p\n",oname,ofun_ptr);
+   say(LOG_DEBUG,"gpu      %s(...) -> %p\n",oname,curr_fun);
 
    error = dlerror();
    if (error != NULL) {

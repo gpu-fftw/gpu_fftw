@@ -84,7 +84,7 @@ SO_LOCAL struct GPU_FFT* gpu_fftw_plan(int N,
       unsigned int flags)
 {
    static int mb = -1;
-   say(LOG_INFO,"%s","running gpu fft\n");
+   say(LOG_INFO,"plan - gpu fft plan running (N=%d,%s)\n",N,(sign==FFTW_FORWARD) ? "forward":"backward");
 
    struct GPU_FFT* fft = NULL;
    if (mb==-1)
@@ -183,7 +183,7 @@ void SO_EXPORT PREFIX_execute(const PREFIX_plan plan)
       fftw_execute_fun=orig_func("PREFIX_execute",PREFIX_execute);
 
    if (!fingerprint_ok((void*)metaplan)) {
-      say(LOG_ERR,"Fingerprint mismatch in execute, falling back to fftw3\n");
+      say(LOG_ERR,"Falling back to fftw3 - fingerprint mismatch in execute\n");
       (*fftw_execute_fun)(plan);
       return;
    }
@@ -209,7 +209,7 @@ void SO_EXPORT PREFIX_destroy_plan(PREFIX_plan plan)
    struct GPU_FFTW_PLAN* metaplan = (struct GPU_FFTW_PLAN*) plan;
 
    if (!fingerprint_ok((void*)metaplan)) {
-      say(LOG_ERR,"Fingerprint mismatch in destroy_plan, falling back to fftw3\n");
+      say(LOG_ERR,"Falling back to fftw3 - fingerprint mismatch in destroy_plan\n");
       (*fftw_destroy_plan_fun)(plan);
       return;
    }

@@ -82,8 +82,8 @@ void exec_other(int argc, char* argv[],char *envp[],bool dblsquash)
          std::cerr << argv[i] << ((i==argc-1) ? "":" ");
          i++;
       }
-      std::cerr << "' with gpu_fftw enabled"
-         << (dblsquash ? " and double squash":"") << std::endl;
+      std::cerr << "'"
+         << (dblsquash ? " with double squash enabled":"") << std::endl;
    }
 
    execve(argv[0], &(argv[0]), newenvp);
