@@ -73,11 +73,11 @@ you read the [limitations] section.
 
 * 2d, 3d and real FFTs are not supported yet
 
+* **Fortran**:  A basic fortran api is provided for programs that have been
+  compiled with GNU fortran. Other compilers may be added later if anyone asks.
+
 * **Auto-fallback**: If there is any problem starting the GPU fft (e.g. lack of
   memory or permissions) gpu_fftw automatically falls back to fftw3.
-
-* **Fortran**: fftw3 provides a fortran API, this is not supported yet, but
-  it is planned. Your fortran programs will not work at this point.
 
 * **Array copying**: gpu_fftw copies the data arrays back and forth.  It does
   it in the fastest way possible, but still needs more memory than fftw3.
@@ -85,11 +85,12 @@ you read the [limitations] section.
   of functions.
 
 ## :bulb: TODO
-- [ ] Fortran programs are not working (segfault), Fortran API needs to be added
+- [x] ~~Fortran programs are not working (segfault), Fortran API needs to be added~~
 - [ ] fftw_malloc family can be overriden to avoid copying arrays
 - [ ] Test cases/benchmarks for double squashing
 - [x] ~~Support double squashing~~
 - [ ] r2c and c2r API missing, should we add it?
 - [ ] 2d API
 - [ ] Drop root permissions asap
+- [ ] Fortran API for compilers other than GNU fortran
 
